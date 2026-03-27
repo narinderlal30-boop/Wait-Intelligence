@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "Sahilrana47k@gmail.com" && request.auth.token.email_verified == true));
+    }
+    
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // - uid: string
+    // - email: string
+    // - displayName: string
+    // - karmaPoints: number
+    // - status: string (Newbie, Verified Reporter, Oracle)
+    
+    // Collection: locations
+    // - id: string
+    // - name: string
+    // - lat: number
+    // - lng: number
+    // - currentWaitTime: number
+    
+    // Collection: locations/{locationId}/reports
+    // - locationId: string
+    // - userId: string
+    // - status: string
+    // - waitTime: number
+    // - timestamp: timestamp
+    // - verifiedCount: number
+    // - verifiers: list
+
+    // Collection: locations/{locationId}/problem_reports
+    // - locationId: string
+    // - userId: string
+    // - type: string (Incorrect Wait Time, Closed, Wrong Address, Other)
+    // - description: string
+    // - timestamp: timestamp
+    // - status: string (Pending, Resolved, Dismissed)
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /test/connection {
+      allow read: if true;
+    }
+
+    match /users/{userId} {
+      // Only allow users to read their own private profile (contains email)
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && 
+        request.resource.data.karmaPoints == 0 && 
+        request.resource.data.status == 'Newbie';
+      allow update: if isOwner(userId) && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'karmaPoints', 'status']);
+    }
+
+    match /locations/{locationId} {
+      allow read: if true;
+      allow update: if isAuthenticated() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentWaitTime', 'lastUpdated']);
+      allow write: if isAdmin();
+    }
+
+    match /reports/{reportId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /rewards/{rewardId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin()) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimed']);
+      allow delete: if isAdmin();
+    }
+
+    match /locations/{locationId}/reports/{reportId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.locationId == locationId;
+      allow update: if isAuthenticated() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verifiedCount', 'verifiers']);
+    }
+
+    match /locations/{locationId}/problem_reports/{reportId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.userId);
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.locationId == locationId &&
+        request.resource.data.status == 'Pending';
+      allow update, delete: if isAdmin();
+    }
+
+    match /users/{userId}/alerts/{alertId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/favorites/{locationId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}

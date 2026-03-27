@@ -1,0 +1,140 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and gamification status",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "karmaPoints": { "type": "integer" },
+        "status": { "type": "string", "enum": ["Newbie", "Verified Reporter", "Oracle"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "karmaPoints", "status"]
+    },
+    "Location": {
+      "title": "Location",
+      "description": "A business or service location with wait time data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "category": { "type": "string" },
+        "historicalBaseline": { "type": "object" },
+        "currentWaitTime": { "type": "integer" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "lat", "lng"]
+    },
+    "WaitReport": {
+      "title": "WaitReport",
+      "description": "A user-submitted report of the current wait time",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "locationId": { "type": "string" },
+        "userId": { "type": "string" },
+        "status": { "type": "string", "enum": ["No Wait", "Moving Fast", "Stuck"] },
+        "waitTime": { "type": "integer" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "verifiedCount": { "type": "integer" },
+        "verifiers": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["locationId", "userId", "status", "waitTime", "timestamp"]
+    },
+    "Alert": {
+      "title": "Alert",
+      "description": "A user-defined alert for wait time thresholds",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "locationId": { "type": "string" },
+        "threshold": { "type": "integer" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["userId", "locationId", "threshold", "active"]
+    },
+    "ProblemReport": {
+      "title": "ProblemReport",
+      "description": "A user-submitted report of a problem with a location",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "locationId": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["Incorrect Wait Time", "Closed", "Wrong Address", "Other"] },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Pending", "Resolved", "Dismissed"] }
+      },
+      "required": ["locationId", "userId", "type", "timestamp", "status"]
+    },
+    "Reward": {
+      "title": "Reward",
+      "description": "A digital reward or coupon earned by a user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "code": { "type": "string" },
+        "expiryDate": { "type": "string", "format": "date" },
+        "type": { "type": "string", "enum": ["Coffee", "Discount", "Priority"] },
+        "claimed": { "type": "boolean" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "code", "claimed", "timestamp"]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "A user's favorited location",
+      "type": "object",
+      "properties": {
+        "locationId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["locationId", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/locations/{locationId}": {
+      "schema": "Location",
+      "description": "Location data"
+    },
+    "/locations/{locationId}/reports/{reportId}": {
+      "schema": "WaitReport",
+      "description": "Wait time reports for a location"
+    },
+    "/locations/{locationId}/problem_reports/{reportId}": {
+      "schema": "ProblemReport",
+      "description": "Problem reports for a location"
+    },
+    "/users/{userId}/alerts/{alertId}": {
+      "schema": "Alert",
+      "description": "User alerts"
+    },
+    "/users/{userId}/favorites/{locationId}": {
+      "schema": "Favorite",
+      "description": "User's favorited locations"
+    },
+    "/reports/{reportId}": {
+      "schema": "WaitReport",
+      "description": "Global wait time reports for user history"
+    },
+    "/rewards/{rewardId}": {
+      "schema": "Reward",
+      "description": "User rewards and coupons"
+    }
+  }
+}

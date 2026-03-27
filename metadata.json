@@ -1,0 +1,5 @@
+{
+  "name": "Wait Time Oracle",
+  "description": "Real-time crowdsourced wait time predictions and recommendations for local businesses and services.",
+  "requestFramePermissions": ["geolocation"]
+}
